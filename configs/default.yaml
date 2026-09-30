@@ -1,0 +1,38 @@
+input:
+  width: 2560
+  height: 1440
+  fps: 30
+
+runtime:
+  device: GPU
+  precision: FP16
+  cache_dir: cache/openvino
+
+detection:
+  model: scrfd_2_5g
+  interval_frames: 2
+  score_threshold: 0.45
+  nms_threshold: 0.4
+  min_face_pixels: 20
+  tiled: false
+
+tracking:
+  algorithm: bytetrack
+  track_threshold: 0.5
+  match_threshold: 0.8
+  buffer_frames: 30
+
+emotion:
+  model: hsemotion
+  interval_frames: 6
+  batch_buckets: [1, 8, 16, 32, 64]
+  minimum_classifiable_face_pixels: 30
+
+temporal:
+  window_seconds: 3.0
+  minimum_observations: 3
+
+output:
+  jsonl_path: outputs/predictions.jsonl
+  save_video: false
+  include_landmarks: false

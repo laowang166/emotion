@@ -1,0 +1,47 @@
+[build-system]
+requires = ["hatchling>=1.26"]
+build-backend = "hatchling.build"
+
+[project]
+name = "classroom-emotion"
+version = "0.1.0"
+description = "Offline classroom face tracking and emotion analysis PoC"
+readme = "README.md"
+requires-python = ">=3.11,<3.14"
+license = { text = "Proprietary" }
+dependencies = [
+    "numpy>=1.26,<3",
+]
+
+[project.scripts]
+classroom-emotion = "classroom_emotion.cli:main"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3,<9",
+    "ruff>=0.8,<1",
+]
+inference = [
+    "opencv-python-headless>=4.10,<5",
+    "openvino>=2025.4,<2027",
+    "PyYAML>=6.0,<7",
+]
+tracking = [
+    "supervision>=0.25,<1",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/classroom_emotion"]
+
+[tool.pytest.ini_options]
+addopts = "-q"
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+

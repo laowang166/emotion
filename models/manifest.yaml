@@ -1,0 +1,23 @@
+schema_version: 1
+models:
+  scrfd_2_5g:
+    purpose: face_detection
+    source: https://github.com/deepinsight/insightface/tree/master/detection/scrfd
+    format: onnx
+    sha256: null
+    license_review: required
+    local_path: models/weights/scrfd_2.5g.onnx
+  hsemotion:
+    purpose: emotion_classification
+    source: https://github.com/sb-ai-lab/EmotiEffLib
+    format: onnx
+    sha256: null
+    license_review: required
+    local_path: models/weights/hsemotion.onnx
+  head_pose_adas_0001:
+    purpose: head_pose
+    source: https://github.com/openvinotoolkit/open_model_zoo
+    format: openvino_ir
+    sha256: null
+    license_review: required
+    local_path: models/weights/head-pose-estimation-adas-0001.xml

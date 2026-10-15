@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Protocol
+from typing import Any, Protocol
 
 import numpy as np
 from numpy.typing import NDArray
@@ -11,17 +11,17 @@ from classroom_emotion.inference.batching import plan_static_batches
 
 BgrImage = NDArray[np.uint8]
 
-# AffectNet-7 label order shared by HSEmotion-style classifiers. Standard emotion
-# models do not emit a "confused" class, so classroom "confused" stays unmapped
-# until a model that provides that signal is wired in.
+# Eight-label AffectNet-style order shared by HSEmotion classifiers. The model
+# does not emit "confused"; that classroom observation uses the separate frown cue.
 EMOTION_LABELS: tuple[str, ...] = (
     "angry",
+    "contempt",
     "disgust",
     "fear",
     "happy",
+    "neutral",
     "sad",
     "surprise",
-    "neutral",
 )
 
 
@@ -73,7 +73,7 @@ class OpenVinoEmotionClassifier:
         model_path: str,
         *,
         device: str = "GPU",
-        input_size: int = 112,
+        input_size: int = 224,
         batch_buckets: tuple[int, ...] = (1, 8, 16, 32, 64),
         labels: tuple[str, ...] = EMOTION_LABELS,
     ) -> None:
@@ -87,10 +87,10 @@ class OpenVinoEmotionClassifier:
         self._input_size = input_size
         self._batch_buckets = batch_buckets
         self._labels = labels
-        core = ov.Core()
-        self._models = {
-            bucket: core.compile_model(model_path, device) for bucket in batch_buckets
-        }
+        self._core = ov.Core()
+        self._model_path = model_path
+        self._device = device
+        self._models: dict[int, Any] = {}
 
     def classify(self, crops: list[BgrImage]) -> list[dict[str, float]]:
         if not crops:
@@ -102,7 +102,14 @@ class OpenVinoEmotionClassifier:
             if plan.padding_count:
                 pad = np.zeros((plan.padding_count, *batch.shape[1:]), dtype=batch.dtype)
                 batch = np.concatenate([batch, pad])
-            model = self._models[plan.compiled_batch_size]
+            model = self._models.get(plan.compiled_batch_size)
+            if model is None:
+                source = self._core.read_model(self._model_path)
+                source.reshape({source.input(0).get_any_name(): [
+                    plan.compiled_batch_size, 3, self._input_size, self._input_size
+                ]})
+                model = self._core.compile_model(source, self._device)
+                self._models[plan.compiled_batch_size] = model
             raw = model(batch)[model.output(0)]
             probabilities = _softmax(np.asarray(raw, dtype=np.float32))
             for offset in range(plan.item_count):
@@ -112,8 +119,19 @@ class OpenVinoEmotionClassifier:
         return results
 
     def _preprocess(self, crop: BgrImage) -> NDArray[np.float32]:
-        import cv2
+        return preprocess_emotion_crop(crop, self._input_size)
 
-        resized = cv2.resize(crop, (self._input_size, self._input_size))
-        rgb = cv2.cvtColor(resized, cv2.COLOR_BGR2RGB).astype(np.float32) / 255.0
-        return np.transpose(rgb, (2, 0, 1))
+
+def preprocess_emotion_crop(crop: BgrImage, input_size: int = 224) -> NDArray[np.float32]:
+    if crop.ndim != 3 or crop.shape[2] != 3:
+        raise ValueError("emotion crop must be a three-channel BGR image")
+    if input_size <= 0:
+        raise ValueError("input_size must be positive")
+    import cv2
+
+    resized = cv2.resize(crop, (input_size, input_size))
+    rgb = cv2.cvtColor(resized, cv2.COLOR_BGR2RGB).astype(np.float32) / 255.0
+    mean = np.asarray([0.485, 0.456, 0.406], dtype=np.float32)
+    std = np.asarray([0.229, 0.224, 0.225], dtype=np.float32)
+    normalized = (rgb - mean) / std
+    return np.transpose(normalized, (2, 0, 1))

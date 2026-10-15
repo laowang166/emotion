@@ -14,5 +14,6 @@ cache/
 outputs/
 videos/
 models/weights/
+configs/cue_calibration.yaml
 samples/
 CLAUDE.md

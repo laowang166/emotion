@@ -65,7 +65,81 @@ class VideoFrameSource:
                 )
                 index += 1
         finally:
+            self.close()
+
+    def close(self) -> None:
+        self._capture.release()
+
+
+class CameraFrameSource:
+    """Read live frames from a local camera using monotonic timestamps."""
+
+    def __init__(
+        self,
+        index: int = 0,
+        *,
+        width: int = 2560,
+        height: int = 1440,
+        fps: int = 30,
+    ) -> None:
+        import cv2
+
+        if min(width, height, fps) <= 0:
+            raise ValueError("camera width, height, and fps must be positive")
+        self._cv2 = cv2
+        self._capture = cv2.VideoCapture(index)
+        if not self._capture.isOpened():
             self._capture.release()
+            raise RuntimeError(f"could not open camera index {index}")
+        self._capture.set(cv2.CAP_PROP_FRAME_WIDTH, width)
+        self._capture.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
+        self._capture.set(cv2.CAP_PROP_FPS, fps)
+        actual_fps = float(self._capture.get(cv2.CAP_PROP_FPS))
+        actual_width = int(self._capture.get(cv2.CAP_PROP_FRAME_WIDTH))
+        actual_height = int(self._capture.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        self._fps = actual_fps if actual_fps > 0 else float(fps)
+        self._info = VideoInfo(
+            width=actual_width if actual_width > 0 else width,
+            height=actual_height if actual_height > 0 else height,
+            fps=self._fps,
+            frame_count=0,
+        )
+
+    @property
+    def info(self) -> VideoInfo:
+        return self._info
+
+    def __iter__(self) -> Iterator[VideoFrame]:
+        import time
+
+        import cv2
+
+        started_at = time.monotonic()
+        index = 0
+        try:
+            while True:
+                for attempt in range(3):
+                    try:
+                        ok, image = self._capture.read()
+                        break
+                    except cv2.error as error:
+                        if attempt == 2:
+                            raise RuntimeError(
+                                f"camera read failed at frame {index} after 3 attempts"
+                            ) from error
+                if not ok:
+                    break
+                yield VideoFrame(
+                    index=index,
+                    timestamp_seconds=max(0.0, time.monotonic() - started_at),
+                    image=np.ascontiguousarray(image),
+                )
+                index += 1
+        finally:
+            self.close()
+
+    def close(self) -> None:
+        self._capture.release()
 
 
 class VideoAnnotationWriter:

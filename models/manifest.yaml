@@ -1,5 +1,14 @@
 schema_version: 1
 models:
+  yunet:
+    purpose: face_detection
+    source: https://github.com/opencv/opencv_zoo/tree/main/models/face_detection_yunet
+    format: onnx
+    sha256: 8F2383E4DD3CFBB4553EA8718107FC0423210DC964F9F4280604804ED2552FA4
+    license: MIT
+    input_size: 640
+    input_color: BGR
+    local_path: models/weights/yunet.onnx
   scrfd_2_5g:
     purpose: face_detection
     source: https://github.com/deepinsight/insightface/tree/master/detection/scrfd
@@ -9,11 +18,44 @@ models:
     local_path: models/weights/scrfd_2.5g.onnx
   hsemotion:
     purpose: emotion_classification
-    source: https://github.com/sb-ai-lab/EmotiEffLib
+    source: https://github.com/sb-ai-lab/EmotiEffLib/blob/main/models/affectnet_emotions/onnx/enet_b0_8_best_vgaf.onnx
     format: onnx
-    sha256: null
-    license_review: required
+    sha256: FA07E841FD06C7A67EE651EA4E6E4A3A2BB5695F47B37A7DA50492526F59C898
+    license_review: Apache-2.0 source license; verify pretrained weights and VGGFace2 terms for deployment
+    model_name: enet_b0_8_best_vgaf
+    input_size: 224
+    input_layout: NCHW
+    input_color: RGB
+    input_normalization: ImageNet mean/std
     local_path: models/weights/hsemotion.onnx
+    openvino_ir_path: models/weights/hsemotion_openvino.xml
+    openvino_ir_precision: FP16
+  face_landmarker:
+    purpose: facial_action_cues
+    source: https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/latest/face_landmarker.task
+    format: mediapipe_task
+    sha256: 64184E229B263107BC2B804C6625DB1341FF2BB731874B0BCC2FE6544E0BC9FF
+    license: MediaPipe model asset; review applicable terms for deployment
+    outputs:
+      - eyeBlinkLeft
+      - eyeBlinkRight
+      - browDownLeft
+      - browDownRight
+    local_path: models/weights/face_landmarker.task
+  face_reidentification_retail_0095:
+    purpose: face_reidentification
+    source: https://github.com/openvinotoolkit/open_model_zoo/tree/master/models/intel/face-reidentification-retail-0095
+    format: openvino_ir
+    precision: FP16
+    xml_sha384: 689FB39E94BBD0D22CFEEB9292D0B91AC753424A7EE2C0555070E4038A00BFCAAD473B47303012B9A393027DBAD0DBCE
+    bin_sha384: null
+    bin_size_bytes: 2213628
+    bin_checksum_note: "Upstream model.yml reports 95 hex characters for this checksum; verify before deployment."
+    license: Apache-2.0
+    input_size: 128
+    input_color: BGR
+    output_features: 256
+    local_path: models/weights/face-reidentification-retail-0095.xml
   head_pose_adas_0001:
     purpose: head_pose
     source: https://github.com/openvinotoolkit/open_model_zoo

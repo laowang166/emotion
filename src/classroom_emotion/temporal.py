@@ -12,7 +12,7 @@ from classroom_emotion.domain import EmotionObservation, FaceCues
 class TrackEmotionWindow:
     """Maintain a quality-weighted emotion window for one anonymous track."""
 
-    def __init__(self, window_seconds: float = 3.0, min_observations: int = 3) -> None:
+    def __init__(self, window_seconds: float = 3.0, min_observations: int = 4) -> None:
         if window_seconds <= 0:
             raise ValueError("window_seconds must be positive")
         if min_observations <= 0:
@@ -68,6 +68,10 @@ class TrackEmotionWindow:
         return FaceCues(
             head_down_score=self._aggregate_cue("head_down_score"),
             eye_closed_score=self._aggregate_cue("eye_closed_score"),
+            frown_score=self._aggregate_cue("frown_score"),
+            head_pitch_degrees=self._aggregate_cue("head_pitch_degrees"),
+            head_yaw_degrees=self._aggregate_cue("head_yaw_degrees"),
+            head_roll_degrees=self._aggregate_cue("head_roll_degrees"),
         )
 
     def _aggregate_cue(self, name: str) -> float | None:

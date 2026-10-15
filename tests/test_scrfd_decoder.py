@@ -3,6 +3,7 @@ import unittest
 import numpy as np
 
 from classroom_emotion.detection.scrfd import ScrfdDecoder, ScrfdLevelOutput
+from classroom_emotion.detection.yunet import YuNetDecoder
 
 
 def level(anchor_count: int, positive_index: int | None = None) -> ScrfdLevelOutput:
@@ -46,6 +47,32 @@ class ScrfdDecoderTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "expected 32 anchors"):
             self.decoder.decode(outputs, score_threshold=0.5, nms_threshold=0.4)
 
+
+class YuNetDecoderTests(unittest.TestCase):
+    def test_decodes_scores_boxes_and_five_landmarks(self) -> None:
+        outputs = {
+            f"{name}_{stride}": np.zeros(
+                (32 // stride) ** 2 * (10 if name == "kps" else 4 if name == "bbox" else 1),
+                dtype=np.float32,
+            )
+            for stride in (8, 16, 32)
+            for name in ("cls", "obj", "bbox", "kps")
+        }
+        outputs["cls_8"][5] = 0.81
+        outputs["obj_8"][5] = 1.0
+        outputs["bbox_8"][5 * 4 : 5 * 4 + 4] = [0.0, 0.0, np.log(2.0), np.log(2.0)]
+        outputs["kps_8"][5 * 10 : 5 * 10 + 10] = np.tile([0.5, 0.5], 5)
+
+        detections = YuNetDecoder(input_width=32, input_height=32).decode(
+            outputs,
+            score_threshold=0.5,
+            nms_threshold=0.4,
+        )
+
+        self.assertEqual(detections.boxes.shape, (1, 4))
+        np.testing.assert_allclose(detections.boxes[0], [0.0, 0.0, 16.0, 16.0])
+        np.testing.assert_allclose(detections.scores, [0.9])
+        np.testing.assert_allclose(detections.landmarks[0], np.tile([12.0, 12.0], (5, 1)))
 
 if __name__ == "__main__":
     unittest.main()

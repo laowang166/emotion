@@ -22,12 +22,19 @@ dev = [
     "ruff>=0.8,<1",
 ]
 inference = [
-    "opencv-python-headless>=4.10,<5",
+    "opencv-contrib-python>=4.10,<5",
     "openvino>=2025.4,<2027",
     "PyYAML>=6.0,<7",
+    "mediapipe>=0.10.35,<0.11",
 ]
 tracking = [
     "supervision>=0.25,<1",
+]
+dashboard = [
+    "streamlit>=1.42,<2",
+    "streamlit-webrtc>=0.63.4,<0.64",
+    "tornado>=6,<7",
+    "Pillow>=10,<13",
 ]
 
 [tool.hatch.build.targets.wheel]

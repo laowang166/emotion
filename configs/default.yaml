@@ -9,28 +9,55 @@ runtime:
   cache_dir: cache/openvino
 
 detection:
-  model: scrfd_2_5g
+  model: yunet
   interval_frames: 2
   score_threshold: 0.45
   nms_threshold: 0.4
   min_face_pixels: 20
-  tiled: false
+  tile_rows: 2
+  tile_columns: 2
+  tile_overlap: 0.2
 
 tracking:
   algorithm: bytetrack
-  track_threshold: 0.5
-  match_threshold: 0.8
-  buffer_frames: 30
+  track_threshold: 0.3
+  match_threshold: 0.95
+  minimum_consecutive_frames: 2
+  buffer_seconds: 8.0
+  identity_retention_seconds: 60.0
 
 emotion:
   model: hsemotion
   interval_frames: 6
   batch_buckets: [1, 8, 16, 32, 64]
-  minimum_classifiable_face_pixels: 30
+  minimum_classifiable_face_pixels: 20
+  input_size: 224
+
+identity:
+  model: models/weights/face-reidentification-retail-0095.xml
+  similarity_threshold: 0.72
+  ambiguity_margin: 0.08
+
+face_cues:
+  enabled: true
+  model: models/weights/face_landmarker.task
+
+cue_calibration_file: cue_calibration.yaml
+
+cue_decision:
+  frown_score_threshold: 0.13
+  eye_closed_score_threshold: 0.50
+  head_down_score_threshold: 0.13
+  head_down_pitch_threshold_degrees: 20.0
+  frown_persistence_seconds: 0.8
+  eye_closed_persistence_seconds: 1.0
+  head_down_persistence_seconds: 1.2
 
 temporal:
   window_seconds: 3.0
-  minimum_observations: 3
+  minimum_observations: 4
+  state_hold_seconds: 3.0
+  state_transition_seconds: 1.2
 
 output:
   jsonl_path: outputs/predictions.jsonl

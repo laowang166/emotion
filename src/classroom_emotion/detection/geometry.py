@@ -7,7 +7,6 @@ from dataclasses import dataclass
 import numpy as np
 from numpy.typing import NDArray
 
-
 FloatArray = NDArray[np.floating]
 
 
@@ -68,6 +67,8 @@ def non_maximum_suppression(
     boxes: FloatArray,
     scores: FloatArray,
     iou_threshold: float,
+    *,
+    containment_threshold: float | None = None,
 ) -> NDArray[np.int64]:
     if boxes.ndim != 2 or boxes.shape[1] != 4:
         raise ValueError("boxes must have shape (N, 4)")
@@ -75,6 +76,8 @@ def non_maximum_suppression(
         raise ValueError("scores must have shape (N,)")
     if not 0.0 <= iou_threshold <= 1.0:
         raise ValueError("iou_threshold must be between 0 and 1")
+    if containment_threshold is not None and not 0.0 <= containment_threshold <= 1.0:
+        raise ValueError("containment_threshold must be between 0 and 1")
     if len(boxes) == 0:
         return np.empty(0, dtype=np.int64)
 
@@ -98,6 +101,16 @@ def non_maximum_suppression(
         intersection = intersection_width * intersection_height
         union = areas[current] + areas[remaining] - intersection
         iou = np.divide(intersection, union, out=np.zeros_like(intersection), where=union > 0)
-        order = remaining[iou <= iou_threshold]
+        suppressed = iou > iou_threshold
+        if containment_threshold is not None:
+            smaller_area = np.minimum(areas[current], areas[remaining])
+            contained_overlap = np.divide(
+                intersection,
+                smaller_area,
+                out=np.zeros_like(intersection),
+                where=smaller_area > 0,
+            )
+            suppressed |= contained_overlap >= containment_threshold
+        order = remaining[~suppressed]
 
     return np.asarray(keep, dtype=np.int64)
